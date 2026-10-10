@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>计划+实际双条（task_template方案，社区免费版）</title>
+  <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/10.0/dhtmlxgantt.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      background: #f5f5f5;
+    }
+
+    .legend {
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .task-plan-bar {
+      position: absolute;
+      left: 0;
+      top: 14px;
+      height: 14px;
+      background: #888;
+      border-radius: 4px;
+      opacity: 0.6;
+    }
+
+    .task-real-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 14px;
+      background: #28b972;
+      border-radius: 4px;
+    }
+
+    .gantt_task_content {
+      color: #fff;
+      font-size: 12px;
+      line-height: 14px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #gantt_here {
+      width: 100%;
+      height: 650px;
+      background: #fff;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="legend">
+    <span style="color:#888;">■ 计划时间(灰色)</span>
+    <span style="color:#28b972; margin-left:20px;">■ 实际时间(绿色)</span>
+  </div>
+
+  <div id="gantt_here"></div>
+
+  <script src="https://cdn.dhtmlx.com/gantt/10.0/dhtmlxgantt.js"></script>
+  <script>
+    gantt.config.scales = [
+      { unit: "month", step: 1, format: "%Y-%m" },
+      { unit: "day", step: 1, format: "%d" }
+    ];
+    gantt.config.task_height = 36;
+    gantt.config.row_height = 40;
+
+    // 关键：自定义 task_template，在一行任务中同时渲染计划条和实际条
+    gantt.config.task_template = function(task) {
+      if (!task.plan_start || !task.plan_end) {
+        const width = task.progress ? task.progress * 100 : 100;
+        return `<div class="task-real-bar" style="width:${width}%"><div class="gantt_task_content">${task.text}</div></div>`;
+      }
+
+      // 计划条位置（底层灰色）
+      const posPlan = gantt.getTaskPosition(task, new Date(task.plan_start), new Date(task.plan_end));
+      // 实际条位置（上层绿色）
+      const posReal = gantt.getTaskPosition(task);
+
+      return `
+        <div class="task-plan-bar" style="left:${posPlan.left}px;width:${posPlan.width}px;"></div>
+        <div class="task-real-bar" style="left:${posReal.left}px;width:${posReal.width}px;">
+          <div class="gantt_task_content">${task.text}</div>
+        </div>
+      `;
+    };
+
+    gantt.config.columns = [
+      { name: "text", label: "任务名称", tree: true, width: 180 },
+      { name: "owner", label: "负责人", align: "center" },
+      { name: "duration", label: "工期", align: "center" },
+      { name: "plan_start", label: "计划开始", align: "center" },
+      { name: "plan_end", label: "计划结束", align: "center" },
+      { name: "start_date", label: "实际开始", align: "center" },
+      { name: "end_date", label: "实际结束", align: "center" }
+    ];
+
+    gantt.init("gantt_here");
+    gantt.parse({
+      data: [
+        {
+          id: 1,
+          text: "B31-01",
+          owner: "黎明",
+          duration: 7,
+          plan_start: "2023-06-13",
+          plan_end: "2023-06-21",
+          start_date: "2023-06-13",
+          end_date: "2023-06-21",
+          progress: 0
+        },
+        {
+          id: 2,
+          text: "B31-02",
+          owner: "黎明",
+          duration: 4,
+          plan_start: "2023-01-28",
+          plan_end: "2023-02-02",
+          start_date: "2023-01-28",
+          end_date: "2023-02-02",
+          progress: 0
+        },
+        {
+          id: 3,
+          text: "任务名称b3",
+          owner: "黎明",
+          duration: 7,
+          plan_start: "2023-08-02",
+          plan_end: "2023-08-10",
+          start_date: "2023-08-02",
+          end_date: "2023-08-10",
+          progress: 0
+        }
+      ],
+      links: []
+    });
+  </script>
+</body>
+</html>
