@@ -13,37 +13,8 @@
     }
 
     .legend {
-      margin-bottom: 8px;
+      margin-bottom: 20px;
       font-size: 14px;
-    }
-
-    .task-plan-bar {
-      position: absolute;
-      left: 0;
-      top: 14px;
-      height: 14px;
-      background: #888;
-      border-radius: 4px;
-      opacity: 0.6;
-    }
-
-    .task-real-bar {
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 14px;
-      background: #28b972;
-      border-radius: 4px;
-    }
-
-    .gantt_task_content {
-      color: #fff;
-      font-size: 12px;
-      line-height: 14px;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     #gantt_here {
@@ -51,6 +22,42 @@
       height: 650px;
       background: #fff;
       border: 1px solid #ddd;
+    }
+
+    /* 计划基线（底层灰色） - 覆盖默认任务样式 */
+    .gantt_task_plan {
+      position: absolute;
+      height: 14px;
+      background: #888 !important;
+      border-radius: 4px;
+      opacity: 0.6;
+      top: 13px;
+      border: none !important;
+    }
+
+    /* 实际任务（上层绿色） */
+    .gantt_task_real {
+      position: absolute;
+      height: 14px;
+      background: #28b972 !important;
+      border-radius: 4px;
+      top: 0;
+      border: none !important;
+      color: #fff;
+      font-size: 12px;
+      line-height: 14px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* 隐藏原生任务条 */
+    .gantt_task_content {
+      display: none !important;
+    }
+
+    .gantt_task {
+      background: transparent !important;
+      border: none !important;
     }
   </style>
 </head>
@@ -71,35 +78,47 @@
     gantt.config.task_height = 36;
     gantt.config.row_height = 40;
 
-    // 关键：自定义 task_template，在一行任务中同时渲染计划条和实际条
-    gantt.config.task_template = function(task) {
-      if (!task.plan_start || !task.plan_end) {
-        const width = task.progress ? task.progress * 100 : 100;
-        return `<div class="task-real-bar" style="width:${width}%"><div class="gantt_task_content">${task.text}</div></div>`;
-      }
-
-      // 计划条位置（底层灰色）
-      const posPlan = gantt.getTaskPosition(task, new Date(task.plan_start), new Date(task.plan_end));
-      // 实际条位置（上层绿色）
-      const posReal = gantt.getTaskPosition(task);
-
-      return `
-        <div class="task-plan-bar" style="left:${posPlan.left}px;width:${posPlan.width}px;"></div>
-        <div class="task-real-bar" style="left:${posReal.left}px;width:${posReal.width}px;">
-          <div class="gantt_task_content">${task.text}</div>
-        </div>
-      `;
-    };
-
     gantt.config.columns = [
       { name: "text", label: "任务名称", tree: true, width: 180 },
-      { name: "owner", label: "负责人", align: "center" },
-      { name: "duration", label: "工期", align: "center" },
-      { name: "plan_start", label: "计划开始", align: "center" },
-      { name: "plan_end", label: "计划结束", align: "center" },
-      { name: "start_date", label: "实际开始", align: "center" },
-      { name: "end_date", label: "实际结束", align: "center" }
+      { name: "owner", label: "负责人", align: "center", width: 80 },
+      { name: "duration", label: "工期", align: "center", width: 60 },
+      { name: "plan_start", label: "计划开始", align: "center", width: 120 },
+      { name: "plan_end", label: "计划结束", align: "center", width: 120 },
+      { name: "start_date", label: "实际开始", align: "center", width: 120 },
+      { name: "end_date", label: "实际结束", align: "center", width: 120 }
     ];
+
+    // 关键：使用 task_template 返回自定义 HTML
+    gantt.config.task_template = function(task) {
+      if (!task.plan_start || !task.plan_end) {
+        return `<div style="height:14px; background:#28b972; border-radius:4px; text-align:center; color:#fff; font-size:11px; line-height:14px;">${task.text}</div>`;
+      }
+      return `<div style="position:relative; height:28px;">
+        <div class="gantt_task_plan" style="width:${task.$plan_width || 100}px;"></div>
+        <div class="gantt_task_real" style="width:${task.$real_width || 100}px;">${task.text}</div>
+      </div>`;
+    };
+
+    // 动态计算条宽度
+    gantt.attachEvent("onBeforeTaskDisplay", function(id, task) {
+      // 计划条宽度
+      if (task.plan_start && task.plan_end) {
+        const planStart = new Date(task.plan_start);
+        const planEnd = new Date(task.plan_end);
+        const posPlan = gantt.getTaskPosition(task, planStart, planEnd);
+        task.$plan_width = posPlan.width;
+      }
+      
+      // 实际条宽度
+      if (task.start_date && task.end_date) {
+        const realStart = new Date(task.start_date);
+        const realEnd = new Date(task.end_date);
+        const posReal = gantt.getTaskPosition(task, realStart, realEnd);
+        task.$real_width = posReal.width;
+      }
+      
+      return true;
+    });
 
     gantt.init("gantt_here");
     gantt.parse({
